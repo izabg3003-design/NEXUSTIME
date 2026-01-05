@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ShieldCheck, Search, Loader2, RefreshCw, UserPlus, X, Trash2, ShieldAlert, Phone, Hash, User, ShoppingCart, Mail, Settings2, Save, Euro, CheckCircle, Fingerprint, BriefcaseBusiness, LifeBuoy, Eye, Clock, Lock, Tag, UserPlus2, Percent, CalendarDays, Activity } from 'lucide-react';
+import { ShieldCheck, Search, Loader2, RefreshCw, UserPlus, X, Trash2, ShieldAlert, Phone, Hash, User, ShoppingCart, Mail, Settings2, Save, Euro, CheckCircle, Fingerprint, BriefcaseBusiness, LifeBuoy, Eye, Clock, Lock, Tag, UserPlus2, Percent, CalendarDays, Activity, Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { UserProfile } from '../types';
 import AdminPartnerReports from './AdminPartnerReports';
 import AdminGlobalAnalytics from './AdminGlobalAnalytics';
+import SettingsPage from './SettingsPage';
 import { differenceInDays, addYears, parseISO } from 'date-fns';
 
 interface Props {
@@ -12,6 +14,8 @@ interface Props {
   onLogout: () => void;
   onViewVendor?: (id: string) => void;
   onViewVendorSales?: (vendor: any) => void;
+  t: (key: string) => any;
+  onUpdateProfile: (user: UserProfile) => Promise<boolean>;
 }
 
 const generateNexusId = () => {
@@ -21,9 +25,9 @@ const generateNexusId = () => {
   return `DX-${year}-${hex}-${serial}-NX`;
 };
 
-const AdminPage: React.FC<Props> = ({ currentUser, f, onLogout, onViewVendor, onViewVendorSales }) => {
+const AdminPage: React.FC<Props> = ({ currentUser, f, onLogout, onViewVendor, onViewVendorSales, t, onUpdateProfile }) => {
   const isMaster = currentUser?.email === 'master@digitalnexus.com';
-  const [activeSubTab, setActiveSubTab] = useState<'users' | 'vendors' | 'reports' | 'analytics' | 'support'>('users');
+  const [activeSubTab, setActiveSubTab] = useState<'users' | 'vendors' | 'reports' | 'analytics' | 'support' | 'profile'>('users');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
   const [supportStaff, setSupportStaff] = useState<UserProfile[]>([]);
@@ -103,7 +107,11 @@ const AdminPage: React.FC<Props> = ({ currentUser, f, onLogout, onViewVendor, on
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchData(); }, [activeSubTab]);
+  useEffect(() => { 
+    if (activeSubTab !== 'profile' && activeSubTab !== 'reports' && activeSubTab !== 'analytics') {
+      fetchData(); 
+    }
+  }, [activeSubTab]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,7 +240,8 @@ const AdminPage: React.FC<Props> = ({ currentUser, f, onLogout, onViewVendor, on
     const term = searchTerm.toLowerCase();
     if (activeSubTab === 'users') return users.filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
     if (activeSubTab === 'support') return supportStaff.filter(s => s.name?.toLowerCase().includes(term) || s.email?.toLowerCase().includes(term));
-    return vendors.filter(v => v.name?.toLowerCase().includes(term) || v.code?.toLowerCase().includes(term));
+    if (activeSubTab === 'vendors') return vendors.filter(v => v.name?.toLowerCase().includes(term) || v.code?.toLowerCase().includes(term));
+    return [];
   }, [users, vendors, supportStaff, activeSubTab, searchTerm]);
 
   const getIsActive = (item: any) => {
@@ -264,13 +273,11 @@ const AdminPage: React.FC<Props> = ({ currentUser, f, onLogout, onViewVendor, on
     if (!editingVendorConfig) return;
     setIsSavingConfig(true);
     try {
-      // 1. Sincronizar na tabela 'vendors'
       const { error: vError } = await supabase.from('vendors').update({
         commission_rate: editingVendorConfig.commission_rate
       }).eq('id', editingVendorConfig.id);
       if (vError) throw vError;
 
-      // 2. Sincronizar no objeto 'subscription' na tabela 'profiles'
       const { data: profile } = await supabase.from('profiles').select('subscription').eq('id', editingVendorConfig.id).single();
       let sub: any = {};
       try { 
@@ -332,10 +339,15 @@ const AdminPage: React.FC<Props> = ({ currentUser, f, onLogout, onViewVendor, on
           <button onClick={() => setActiveSubTab('vendors')} className={`px-4 py-2 rounded-xl transition-all text-[9px] font-black uppercase tracking-widest ${activeSubTab === 'vendors' ? 'bg-green-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>Parceiros</button>
           <button onClick={() => setActiveSubTab('support')} className={`px-4 py-2 rounded-xl transition-all text-[9px] font-black uppercase tracking-widest ${activeSubTab === 'support' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>Suporte</button>
           <button onClick={() => setActiveSubTab('reports')} className={`px-4 py-2 rounded-xl transition-all text-[9px] font-black uppercase tracking-widest ${activeSubTab === 'reports' ? 'bg-amber-600 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}>Comissões</button>
+          <button onClick={() => setActiveSubTab('profile')} className={`px-4 py-2 rounded-xl transition-all text-[9px] font-black uppercase tracking-widest ${activeSubTab === 'profile' ? 'bg-slate-200 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}>
+            <Settings className="w-3.5 h-3.5 inline mr-1" /> Perfil Master
+          </button>
         </div>
       </div>
 
-      {activeSubTab === 'analytics' ? <AdminGlobalAnalytics f={f} /> : activeSubTab === 'reports' ? <AdminPartnerReports f={f} /> : (
+      {activeSubTab === 'analytics' ? <AdminGlobalAnalytics f={f} /> : 
+       activeSubTab === 'reports' ? <AdminPartnerReports f={f} /> : 
+       activeSubTab === 'profile' ? <SettingsPage user={currentUser!} setUser={onUpdateProfile} t={t} /> : (
         <div className="bg-slate-800/20 border border-slate-800 rounded-[2.5rem] overflow-hidden backdrop-blur-md shadow-2xl relative">
           <div className="p-8 border-b border-slate-800 flex flex-col md:flex-row gap-6 justify-between items-center bg-slate-900/40">
             <div className="relative w-full md:max-w-md">

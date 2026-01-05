@@ -262,6 +262,8 @@ const App: React.FC = () => {
                   currentUser={user} 
                   f={formatCurrency}
                   onLogout={handleLogout}
+                  t={t}
+                  onUpdateProfile={handleUpdateProfile}
                   onViewVendor={(id) => { setSelectedVendorData({id}); setAppState('vendor-detail'); }}
                   onViewVendorSales={(vendor) => { setSelectedVendorData(vendor); setAppState('vendor-sales'); }}
                 />
