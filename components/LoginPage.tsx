@@ -1,0 +1,195 @@
+
+import React, { useState, useEffect } from 'react';
+import { User, Lock, ArrowRight, ArrowLeft, ShieldAlert, UserCircle, Loader2, ShieldCheck, Crown } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+
+interface Props {
+  onLogin: (email: string) => void;
+  onBack: () => void;
+  t: (key: string) => any;
+  externalError?: { title: string, text: string } | null;
+}
+
+const LoginPage: React.FC<Props> = ({ onLogin, onBack, t, externalError }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<{ title: string, text: string } | null>(null);
+
+  useEffect(() => {
+    if (externalError) {
+      setErrorMsg(externalError);
+    }
+  }, [externalError]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        if (error.message.includes('Email not confirmed')) {
+          setErrorMsg({
+            title: 'ACESSO BLOQUEADO',
+            text: 'Por favor, confirme o seu e-mail ou contacte o administrador.'
+          });
+          return;
+        } else if (error.message.includes('Invalid login credentials')) {
+          setErrorMsg({
+            title: 'CREDENCIAIS INVÁLIDAS',
+            text: 'O e-mail ou palavra-passe não coincidem com nenhuma conta Nexus ativa.'
+          });
+          return;
+        }
+        throw error;
+      }
+
+      onLogin(email);
+    } catch (error: any) {
+      setErrorMsg({
+        title: 'ERRO DE SISTEMA',
+        text: error.message
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const quickLogin = (type: 'master' | 'admin' | 'user') => {
+    setErrorMsg(null);
+    if (type === 'master') {
+      setEmail('master@digitalnexus.com');
+      setPassword('master-nexus-2025');
+    } else if (type === 'admin') {
+      setEmail('admin@digitalnexus.com');
+      setPassword('admin123');
+    } else {
+      setEmail('usuario@teste.com');
+      setPassword('user123');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Background Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] animate-pulse"></div>
+
+      <div className="max-w-md w-full bg-slate-900/40 backdrop-blur-2xl border border-slate-800 p-8 rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden">
+        
+        {/* Top Header with Back Button */}
+        <div className="flex items-center justify-between mb-8">
+          <button 
+            onClick={onBack}
+            className="flex items-center gap-2 text-slate-500 hover:text-white transition-all group bg-slate-800/30 px-4 py-2 rounded-xl border border-slate-700/50"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="text-[10px] font-black uppercase tracking-widest">{t('common.back')}</span>
+          </button>
+          
+          <div className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full">
+            <span className="text-[9px] font-black text-purple-400 uppercase tracking-[0.2em]">{t('login.secureAccess')}</span>
+          </div>
+        </div>
+
+        <div className="text-center mb-10">
+          <h2 className="text-4xl font-black italic text-white tracking-tighter">NEXUS<span className="text-purple-400">TIME</span></h2>
+          <p className="text-slate-500 mt-2 text-[10px] font-black uppercase tracking-[0.3em]">Digital Nexus Solutions Platform</p>
+        </div>
+
+        {errorMsg && (
+          <div className={`mb-8 p-5 rounded-[1.5rem] space-y-1 animate-[shake_0.5s_ease-in-out] border ${errorMsg.title.includes('BLOQUEADO') || errorMsg.title.includes('SUSPENSO') ? 'bg-orange-500/10 border-orange-500/30' : 'bg-red-500/10 border-red-500/20'}`}>
+            <div className={`flex items-center gap-2 mb-1 ${errorMsg.title.includes('BLOQUEADO') || errorMsg.title.includes('SUSPENSO') ? 'text-orange-500' : 'text-red-500'}`}>
+              <ShieldAlert className="w-4 h-4 shrink-0" />
+              <p className="text-[10px] font-black uppercase tracking-widest">{errorMsg.title}</p>
+            </div>
+            <p className={`text-[11px] font-bold leading-relaxed ${errorMsg.title.includes('BLOQUEADO') || errorMsg.title.includes('SUSPENSO') ? 'text-orange-400/80' : 'text-red-400/80'}`}>{errorMsg.text}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('login.idNexus')}</label>
+            <div className="relative group">
+              <User className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-purple-400 transition-colors" />
+              <input 
+                type="email" 
+                required
+                className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl pl-14 pr-4 py-5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all text-white font-medium"
+                placeholder="nexus@digital.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('login.securityKey')}</label>
+            <div className="relative group">
+              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-purple-400 transition-colors" />
+              <input 
+                type="password" 
+                required
+                className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl pl-14 pr-4 py-5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all text-white font-medium"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <button 
+            disabled={loading}
+            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-black py-5 rounded-2xl transition-all shadow-xl shadow-purple-900/20 flex items-center justify-center space-x-3 group active:scale-[0.98] disabled:opacity-50 mt-8"
+          >
+            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
+              <>
+                <span className="uppercase tracking-[0.2em] text-sm">{t('login.validateAccess')}</span>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
+          </button>
+        </form>
+
+        <div className="mt-10 pt-8 border-t border-slate-800/50">
+          <p className="text-[10px] font-black text-slate-600 text-center uppercase tracking-widest mb-6">{t('login.quickLogin')}</p>
+          <div className="grid grid-cols-1 gap-3">
+            <button 
+              onClick={() => quickLogin('master')} 
+              className="flex items-center justify-center space-x-3 bg-gradient-to-r from-yellow-600/20 to-amber-600/20 hover:from-yellow-600/30 hover:to-amber-600/30 border border-yellow-500/30 p-4 rounded-2xl transition-all group relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+              <Crown className="w-5 h-5 text-yellow-500 group-hover:scale-110 transition-transform" />
+              <span className="text-[11px] font-black text-yellow-500 uppercase tracking-[0.2em]">Master Admin</span>
+            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => quickLogin('admin')} className="flex items-center justify-center space-x-2 bg-slate-950/50 hover:bg-slate-800 border border-slate-800 p-4 rounded-2xl transition-all group">
+                <ShieldCheck className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('login.admin')}</span>
+              </button>
+              <button onClick={() => quickLogin('user')} className="flex items-center justify-center space-x-2 bg-slate-950/50 hover:bg-slate-800 border border-slate-800 p-4 rounded-2xl transition-all group">
+                <UserCircle className="w-4 h-4 text-green-400 group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('login.user')}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          75% { transform: translateX(5px); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default LoginPage;
