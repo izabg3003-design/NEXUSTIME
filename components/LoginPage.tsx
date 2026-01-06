@@ -61,20 +61,6 @@ const LoginPage: React.FC<Props> = ({ onLogin, onBack, t, externalError }) => {
     }
   };
 
-  const quickLogin = (type: 'master' | 'admin' | 'user') => {
-    setErrorMsg(null);
-    if (type === 'master') {
-      setEmail('master@digitalnexus.com');
-      setPassword('master-nexus-2025');
-    } else if (type === 'admin') {
-      setEmail('admin@digitalnexus.com');
-      setPassword('admin123');
-    } else {
-      setEmail('usuario@teste.com');
-      setPassword('user123');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden">
       {/* Background Glow */}
@@ -155,30 +141,6 @@ const LoginPage: React.FC<Props> = ({ onLogin, onBack, t, externalError }) => {
             )}
           </button>
         </form>
-
-        <div className="mt-10 pt-8 border-t border-slate-800/50">
-          <p className="text-[10px] font-black text-slate-600 text-center uppercase tracking-widest mb-6">{t('login.quickLogin')}</p>
-          <div className="grid grid-cols-1 gap-3">
-            <button 
-              onClick={() => quickLogin('master')} 
-              className="flex items-center justify-center space-x-3 bg-gradient-to-r from-yellow-600/20 to-amber-600/20 hover:from-yellow-600/30 hover:to-amber-600/30 border border-yellow-500/30 p-4 rounded-2xl transition-all group relative overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-              <Crown className="w-5 h-5 text-yellow-500 group-hover:scale-110 transition-transform" />
-              <span className="text-[11px] font-black text-yellow-500 uppercase tracking-[0.2em]">Master Admin</span>
-            </button>
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => quickLogin('admin')} className="flex items-center justify-center space-x-2 bg-slate-950/50 hover:bg-slate-800 border border-slate-800 p-4 rounded-2xl transition-all group">
-                <ShieldCheck className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('login.admin')}</span>
-              </button>
-              <button onClick={() => quickLogin('user')} className="flex items-center justify-center space-x-2 bg-slate-950/50 hover:bg-slate-800 border border-slate-800 p-4 rounded-2xl transition-all group">
-                <UserCircle className="w-4 h-4 text-green-400 group-hover:scale-110 transition-transform" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('login.user')}</span>
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <style>{`
